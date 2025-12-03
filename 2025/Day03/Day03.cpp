@@ -12,12 +12,12 @@
 #include <algorithm>
 #include <numeric>
 #include <bitset>
+#include <ranges> // For std::views::reverse was added in C++20
 
-//static const char inputFileName[] = "input.txt";
-static const char inputFileName[] = "input_test.txt";
+static const char inputFileName[] = "input.txt";
+//static const char inputFileName[] = "input_test.txt";
 //static const char inputFileName[] = "input_test1.txt";
 //static const char inputFileName[] = "input_test2.txt";
-
 
 typedef long long BigNumber;
 
@@ -34,11 +34,60 @@ class Battery
             , joltage_(joltage)
         { }
 
-    BigNumber position_;
-    BigNumber joltage_;
+        BigNumber position()
+        {
+            return position_;
+        }
+
+        BigNumber joltage()
+        {
+            return joltage_;
+        }
+
+    private:
+        BigNumber position_;
+        BigNumber joltage_;
 };
 
+
+struct AscendingBigNumberComparator
+{
+    bool operator()(const BigNumber& lhs, const BigNumber& rhs) const
+    {
+        // lhs is less return true
+        // otherwise (rhs is less) return false
+        if (lhs < rhs)
+        {
+            return true;
+        }
+
+        return false;
+    }
+};
+
+
+struct DescendingBigNumberComparator
+{
+    bool operator()(const BigNumber& lhs, const BigNumber& rhs) const
+    {
+        // rhs is less return true
+        // otherwise (lhs is less) return false
+        if (lhs > rhs)
+        {
+            return true;
+        }
+
+        return false;
+    }
+};
+
+
+// Use a multimap, so that batteries are sorted in ascending order based on their joltage and allow for multiple keys to be present
 typedef std::multimap<BigNumber, Battery> BatteryBank; // key: joltage, value: Battery
+
+// Alternatively, use a custom comparator that sorts in descending order to avoid reverse order searching with std::views::reverse
+//typedef std::multimap<BigNumber, Battery, DescendingBigNumberComparator> BatteryBank; // key: joltage, value: Battery
+
 typedef std::vector<BatteryBank> BatteryBanks;
 
 
@@ -140,6 +189,48 @@ void readInputFile(std::string fileName, BatteryBanks& batteryBanks)
     }
 }
 
+BigNumber findJoltage(BatteryBank& batteryBank, BigNumber batteriesNeeded)
+{
+    BigNumber joltage = 0;
+    size_t numBatteries = batteryBank.size();
+    Battery batteryLast(-1, 0); // Position must be less than the lowest possible value
+
+    for (BigNumber batteriesLeft = batteriesNeeded; batteriesLeft > 0; batteriesLeft--)
+    {
+        Battery batteryPick(numBatteries, 0); // Set position beyond max value, set joltage to below lowest value
+
+        for (auto& battery : batteryBank | std::views::reverse) // use this when the batteries are sorted in ascending order and C++20 features (std::views::reverse) are available
+        //for (auto& battery : batteryBank) // use this when the batteries are sorted in descending order
+        //for (auto i t= batteryBank.begin(); it != batteryBank.end(); it++) // // use this when the batteries are sorted in descending order and no c++20 features are available
+        //for (auto it = batteryBank.rbegin(); it != batteryBank.rend(); it++) // use this when the batteries are sorted in ascending order and no c++20 features are available
+        {
+            //auto battery = *it; // use this when iterator based looping is used
+            // Pick the next battery that is located after the last pick AND before the end (i.e. must have enough batteries left to fulfill all batteries)
+            if (batteryLast.position() < battery.second.position() &&
+                battery.second.position() <= (BigNumber)(numBatteries - batteriesLeft))
+            {
+                if (battery.second.joltage() >= batteryPick.joltage())
+                {
+                    if (battery.second.position() < batteryPick.position())
+                    {
+                        batteryPick = battery.second;
+                    }
+                }
+                else
+                {
+                    // Already found the highest joltage, it is safe to exit the search
+                    break;
+                }
+            }
+        }
+
+        joltage = 10 * joltage + batteryPick.joltage();
+        batteryLast = batteryPick;
+    }
+
+    return joltage;
+}
+
 
 int main()
 {
@@ -158,39 +249,14 @@ int main()
         std::cout << "Solving problem..." << std::endl;
         std::cout << "Part 1:" << std::endl;
         {
-            // Calculate the sum of all silly numbers
             BigNumber result = 0;
 
             for (auto& batteryBank : batteryBanks)
             {
                 BigNumber joltage = 0;
-                size_t numBatteries = batteryBank.size();
-                Battery battery1;
-                Battery battery2;
 
-                // pick the first battery with the higest joltage as long as it is not the last battery in the bank
-                // walk through the sorted map elements
-                for (auto& battery : batteryBank)
-                {
-                    if (battery.second.position_ < numBatteries - 1)
-                    {
-                        battery1 = battery.second;
-                        break;
-                    }
-                }
+                joltage = findJoltage(batteryBank, 2);
 
-                // pick the second battery with the higest joltage as long as it is located after the first battery
-                // walk through the sorted map elements
-                for (auto& battery : batteryBank)
-                {
-                    if (battery.second.position_ > battery1.position_)
-                    {
-                        battery2 = battery.second;
-                        break;
-                    }
-                }
-
-                joltage = 10 * battery1.joltage_ + battery2.joltage_;
                 result += joltage;
             }
 
@@ -202,9 +268,16 @@ int main()
 
         std::cout << "Part 2:" << std::endl;
         {
-            // Calculate the sum of all silly numbers
             BigNumber result = 0;
 
+            for (auto& batteryBank : batteryBanks)
+            {
+                BigNumber joltage = 0;
+
+                joltage = findJoltage(batteryBank, 12);
+
+                result += joltage;
+            }
 
             std::cout << "Total: " << result;
             std::cout << std::endl;

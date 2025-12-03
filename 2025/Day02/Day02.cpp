@@ -124,7 +124,7 @@ void readInputFile(std::string fileName, Ranges& ranges)
             {
                 case 1:
                 {
-                    // Read rotation
+                    // Read ranges
                     if (!line.empty())
                     {
                         auto strRanges = split(line, { "," });
@@ -158,6 +158,7 @@ void readInputFile(std::string fileName, Ranges& ranges)
 
 bool isSilly1(BigNumber val)
 {
+    // search in the string domain instead of the numbers domain
     auto valAsString = std::to_string(val);
     
     auto strLen = valAsString.size();
@@ -182,6 +183,7 @@ bool isSilly1(BigNumber val)
 
 bool isSilly2(BigNumber val)
 {
+    // search in the string domain instead of the numbers domain
     auto valAsString = std::to_string(val);
     auto strLen = valAsString.size();
 
