@@ -197,6 +197,21 @@ bool isSilly2(BigNumber val)
             // take the first i character(s)
             auto str1 = valAsString.substr(0, i);
 
+
+            auto numRepeats = strLen / i;
+
+            std::string str2;
+            for (int x = 0; x < numRepeats; x++)
+            {
+                str2 = str2 + str1;
+            }
+
+            if (valAsString == str2)
+            {
+                return true;
+            }
+
+/*
             bool found = true;
 
             // chop up the original string into substring sizes and check if we have a match with ALL substrings
@@ -213,6 +228,7 @@ bool isSilly2(BigNumber val)
             {
                 return true;
             }
+*/
         }
     }
 
