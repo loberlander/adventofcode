@@ -259,9 +259,7 @@ int main()
                 // Merge the "new" (next) range into the merged list
                 while (!isDone)
                 {
-                    // Create an iterator to save the element where merge happen
-                    // Use auto so the exact iterator type does not need to be figured out
-                    //auto mergedIt = mergedRanges.begin();
+                    // Create an iterator to save the element where merge happened
                     Ranges::iterator mergedIt;
 
                     bool isMerged = false;
@@ -298,7 +296,7 @@ int main()
                 }
             }
 
-            // Calculate the sum of thesize of merged ranges
+            // Calculate the sum of the size of merged ranges
             for (auto& range : mergedRanges)
             {
                 result += range.size();
