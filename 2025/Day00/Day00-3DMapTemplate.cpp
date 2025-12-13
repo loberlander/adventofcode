@@ -10,17 +10,17 @@
 #include <deque>
 #include <queue>
 #include <algorithm>
-#include <cmath>
 #include <numeric>
 #include <bitset>
 
-static const char inputFileName[] = "input.txt";
-//static const char inputFileName[] = "input_test.txt";
+//static const char inputFileName[] = "input.txt";
+static const char inputFileName[] = "input_test.txt";
 //static const char inputFileName[] = "input_test1.txt";
 //static const char inputFileName[] = "input_test2.txt";
 
 
 typedef long long BigNumber;
+typedef std::vector<std::string> Map;
 
 class Point
 {
@@ -183,7 +183,33 @@ std::vector<std::string> split(std::string line, std::vector<std::string> delimi
 }
 
 
-void readInputFile(std::string fileName, Points& points)
+std::string trimLeft(const std::string& str, const std::string pattern = " \t\n\r\f\v")
+{
+    // Find the first non-whitespace character
+    size_t pos = str.find_first_not_of(pattern);
+
+    // Extract the substring from the first non-whitespace to the end
+    return (pos == std::string::npos) ? "" : str.substr(pos);
+}
+
+
+std::string trimRight(const std::string& str, const std::string pattern = " \t\n\r\f\v")
+{
+    // Find the last non-whitespace character
+    size_t pos = str.find_last_not_of(pattern);
+
+    // Extract the substring from the beginning to the last non-whitespace 
+    return (pos == std::string::npos) ? "" : str.substr(0, pos + 1);
+}
+
+
+std::string trimLeftRight(const std::string& str, const std::string pattern = " \t\n\r\f\v")
+{
+    return trimLeft(trimRight(str, pattern), pattern);
+}
+
+
+void readInputFile(std::string fileName, Map& map)
 {
     std::string line;
     std::ifstream myFile(fileName);
@@ -200,12 +226,7 @@ void readInputFile(std::string fileName, Points& points)
                     // Read ranges
                     if (!line.empty())
                     {
-                        auto coordinates = split(line, { "," });
-                        if (coordinates.size() == 3)
-                        {
-                            Point point(std::stoll(coordinates[0]), std::stoll(coordinates[1]), std::stoll(coordinates[2]));
-                            points.emplace_back(point);
-                        }
+                        map.emplace_back(line);
                     }
                     else
                     {
@@ -223,148 +244,25 @@ void readInputFile(std::string fileName, Points& points)
     }
 }
 
-Groups groupPoints(Points& points, Distances& distances, BigNumber maxNumConnections, Points& lastNeighbors)
-{
-    Groups groups; // this is the output: map of (Point -> Group ID)
-
-    // start with the first pair of points in the sorted distances that are the closest
-    auto it = distances.begin();
-    BigNumber groupId = 0;
-    BigNumber numConnections = 0;
-
-    while (numConnections < maxNumConnections && it != distances.end())
-    {
-        Points neighbors(it->second);
-        
-        auto foundIt0 = groups.find(neighbors[0]);
-        auto foundIt1 = groups.find(neighbors[1]);
-
-        if (foundIt0 != groups.end() && foundIt1 != groups.end() && foundIt0->second != foundIt1->second)
-        {
-            // Points were found in two distinct groups, they need to be merged
-            // Connect the two groups together
-            BigNumber groupIdNew = std::min(foundIt0->second, foundIt1->second);
-            BigNumber groupIdOld = std::max(foundIt0->second, foundIt1->second);
-
-            for (auto groupIt = groups.begin(); groupIt !=groups.end(); groupIt++)
-            {
-                if (groupIt->second == groupIdOld)
-                {
-                    groupIt->second = groupIdNew;
-                }
-            }
-        }
-        else if (foundIt0 != groups.end() && foundIt1 == groups.end())
-        {
-            // One of the points is already in a group
-            // connect the other point to it as well
-            groups.emplace(neighbors[1], foundIt0->second);
-        }
-        else if (foundIt0 == groups.end() && foundIt1 != groups.end())
-        {
-            // One of the points is already in a group
-            // connect the other point to it as well
-            groups.emplace(neighbors[0], foundIt1->second);
-        }
-        else if (foundIt0 == groups.end() && foundIt1 == groups.end())
-        {
-            // Neither of the points belong to a group yet
-            // Create a new group for them
-            groups.emplace(neighbors[0], groupId);
-            groups.emplace(neighbors[1], groupId);
-            ++groupId;
-        }
-
-        // Are we potentially close to the last connection?
-        // Must have at least as many elements in groups as points
-        if (points.size() == groups.size())
-        {
-            BigNumber groupIdSpecial = groups.begin()->second;
-            bool isSpecial = true;
-            for (auto& group : groups)
-            {
-                if (group.second != groupIdSpecial)
-                {
-                    isSpecial = false;
-                    break;
-                }
-            }
-            if (isSpecial)
-            {
-                lastNeighbors = it->second; // make a copy for later
-                return groups;
-            }
-        }
-
-        // Move to the next set of points with the lowest distance 
-        ++it;
-        ++numConnections;
-    }
-
-    return groups;
-}
-
 
 int main()
 {
     std::cout << "Parsing input file..." << std::endl;
 
-    Points points;
-    Distances distances;
+    Map map;
 
-    readInputFile(inputFileName, points);
+    readInputFile(inputFileName, map);
 
-    if (points.empty())
+    if (map.empty())
     {
         std::cout << "Failed to read and parse input data!" << std::endl;
     }
     else
     {
-        // calculate distances among points and store them in a map (sorted by distances)
-        for (auto& point1 : points)
-        {
-            for (auto& point2 : points)
-            {
-                if (point1 != point2)
-                {
-                    Points points({ point1, point2 });
-
-                    auto it = distances.emplace(point1.distance(point2), points);
-                }
-            }
-        }
-
         std::cout << "Solving problem..." << std::endl;
         std::cout << "Part 1:" << std::endl;
         {
             BigNumber result = 0;
-
-            Points lastNeighbors;
-            Points pointsP1 = points;
-
-            Groups groups = groupPoints(pointsP1, distances, 1000, lastNeighbors);
-            //Groups groups = groupPoints(pointsP1, distances, 10, lastNeighbors);
-
-            std::map<BigNumber, BigNumber> groupsPopulation; // key: group Id: value: points in the group
-
-            for (auto& group : groups)
-            {
-                groupsPopulation[group.second]++;
-            }
-
-            // Sort the sizes
-            std::multiset<BigNumber> groupSizes; // Multiple instances of the same counts might exist
-            for (auto& group : groupsPopulation)
-            {
-                groupSizes.emplace(group.second);
-            }
-
-            // Multiply the 3 largest group population
-            auto sizeIt = groupSizes.end();
-            sizeIt--; // move to the last element
-            result = (*sizeIt--);
-            result *= (*sizeIt--);
-            result *= (*sizeIt);
 
             std::cout << "Total: " << result;
             std::cout << std::endl;
@@ -375,13 +273,6 @@ int main()
         std::cout << "Part 2:" << std::endl;
         {
             BigNumber result = 0;
-
-            Points lastNeighbors;
-            Points pointsP2 = points;
-
-            Groups groups = groupPoints(pointsP2, distances, 100000000, lastNeighbors);
-
-            result = lastNeighbors[0].x() * lastNeighbors[1].x();
 
             std::cout << "Total: " << result;
             std::cout << std::endl;
