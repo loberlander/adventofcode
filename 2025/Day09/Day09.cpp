@@ -173,6 +173,7 @@ void readInputFile(std::string fileName, Points& points)
 }
 
 // Inside/outside polygon determination using ray casting
+// https://medium.com/@girishajmera/exploring-algorithms-to-determine-points-inside-or-outside-a-polygon-038952946f87
 bool isPointInside(Points& points, Point& p)
 {
     bool inside = false;
@@ -184,7 +185,7 @@ bool isPointInside(Points& points, Point& p)
         Point p1 = points[i];
         Point p2 = points[(i + 1) % points.size()];
 
-        if ((p.x() == p1.x() && p.x() == p2.x() && std::min(p1.y(), p2.y()) <= p.y() && p.y() <= std::max(p1.y(), p2.y())) or
+        if ((p.x() == p1.x() && p.x() == p2.x() && std::min(p1.y(), p2.y()) <= p.y() && p.y() <= std::max(p1.y(), p2.y())) ||
             (p.y() == p1.y() && p.y() == p2.y() && std::min(p1.x(), p2.x()) <= p.x() && p.x() <= std::max(p1.x(), p2.x())))
         {
             // Point is on the polygon segment
@@ -192,6 +193,7 @@ bool isPointInside(Points& points, Point& p)
         }
 
         if ( ((p1.y() > p.y()) != (p2.y() > p.y())) && (p.x() < (p2.x() - p1.x()) * (p.y() - p1.y()) / (p2.y() - p1.y()) + p1.x() ))
+        //if (((p1.y() <= p.y()) && (p2.y() > p.y())) && (p.x() < (p2.x() - p1.x()) * (p.y() - p1.y()) / (p2.y() - p1.y()) + p1.x()))
         {
             // crossing over, one has to be higher than the other
             inside = !inside;
@@ -202,6 +204,7 @@ bool isPointInside(Points& points, Point& p)
 }
 
 
+// https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
 bool isIntersect(Points& polyLine, Points& rectLine)
 {
     BigNumber L1x1 = std::min(polyLine[0].x(), polyLine[1].x());
@@ -237,15 +240,6 @@ bool isIntersect(Points& polyLine, Points& rectLine)
         }
     }
     return false;
-/*
-    BigNumber intersection_low_x = std::max(L1x1, L2x1);
-    BigNumber intersection_high_x = std::min(L1x2, L2x2);
-
-    BigNumber intersection_low_y = std::max(L1y1, L2y1);
-    BigNumber intersection_high_y = std::min(L1y2, L2y2);
-
-    return intersection_low_x <= intersection_high_x && intersection_low_y <= intersection_high_y;
-*/
 }
 
 
